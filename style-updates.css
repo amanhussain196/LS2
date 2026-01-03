@@ -1,0 +1,115 @@
+/* Reader Interface Styles */
+.reader-card {
+    background: linear-gradient(145deg, #111, #0a0a0a);
+    border: 1px solid #333;
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    margin-top: 2rem;
+    width: 100%;
+    max-width: 500px;
+    /* Limit width on desktop */
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.reader-title {
+    color: #fff;
+    font-family: var(--font-heading);
+    font-size: 2.5rem;
+    margin: 0 0 2rem 0;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    border-bottom: 1px solid #333;
+    padding-bottom: 1rem;
+    text-align: center;
+}
+
+.reader-canvas-container {
+    margin-bottom: 2rem;
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+#reader-canvas {
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: #fff;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    max-width: 100%;
+    /* Responsive */
+    height: auto !important;
+    /* Preserves aspect ratio */
+}
+
+.reader-controls-row {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+}
+
+.reader-info-block {
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+.reader-pin-big {
+    font-size: 4rem;
+    font-family: var(--font-heading);
+    display: block;
+    color: #fff;
+}
+
+.reader-label-small {
+    color: #666;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.reader-slider-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+}
+
+/* Mobile Tweaks */
+@media (max-width: 600px) {
+    .reader-card {
+        padding: 1rem;
+        border-radius: 12px;
+        margin-top: 1rem;
+    }
+
+    .reader-title {
+        font-size: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .reader-pin-big {
+        font-size: 3rem;
+    }
+
+    .white-btn-small {
+        padding: 0.6rem 1rem;
+        font-size: 0.7rem;
+        min-width: unset !important;
+        /* Override inline min-width */
+    }
+
+    .lang-btn {
+        min-width: 80px !important;
+    }
+
+    /* Make canvas fully responsive */
+    #reader-canvas {
+        width: 100%;
+        height: auto;
+    }
+}

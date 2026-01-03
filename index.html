@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thread Art Kits | From Threads to Art</title>
+    <meta name="description"
+        content="Discover the art of precision with our DIY Thread Art Kits. Create beautiful, geometric string art from the comfort of your home.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Inter:wght@300;400;500&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="string-art.css">
+    <link rel="stylesheet" href="gallery-animation.css">
+</head>
+
+<body>
+    <!-- Navigation (Minimal) -->
+    <nav class="navbar">
+        <div class="logo">
+            <!-- Inline SVG for Premium Stroke Animation -->
+            <!-- Premium Brand Mark -->
+            <span class="brand-mark">Lovable strings</span>
+        </div>
+        <div class="nav-links">
+            <a href="#shop">Shop</a>
+            <a href="#" id="nav-about-btn">About</a>
+            <a href="#" id="nav-contact-btn">Contact</a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="hero">
+        <canvas id="thread-canvas"></canvas>
+        <div class="hero-content">
+            <h1 class="fade-in">From Threads to Art</h1>
+            <p class="subtext fade-in-delay">DIY Thread Art Kits</p>
+            <p class="emotional-line fade-in-more-delay">Slow down. Create something lasting.</p>
+            <div class="cta-group">
+                <button id="buy-now-btn" class="cta-button fade-in-more-delay">Buy Now</button>
+                <button id="sequence-generator-btn" class="cta-button fade-in-more-delay">Sequence Generator</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sequence Generator Section (Hidden Initially) -->
+    <section id="sequence-generator" class="hidden">
+        <div class="generator-container">
+            <div class="generator-hero">
+                <div class="generator-content">
+                    <h1>Sequence Generator</h1>
+                    <button id="hero-reader-btn" class="cta-button white-btn-small"
+                        style="margin-right: 10px;">Reader</button>
+                    <button id="generate-now-btn" class="cta-button white-btn">Generate</button>
+                    <button id="view-gallery-btn" class="cta-button white-btn-small"
+                        style="margin-left: 10px;">Gallery</button>
+                    <p>Configure your thread art.</p>
+                </div>
+            </div>
+
+            <div id="generator-workspace" class="hidden">
+                <div class="workspace-content">
+                    <div id="interface-card" class="interface-card">
+                        <h2>Upload Your Photo</h2>
+                        <p class="workspace-sub">Process your image into string art.</p>
+
+                        <div class="upload-area" id="upload-trigger">
+                            <div class="upload-icon">+</div>
+                            <p>Upload your Photo</p>
+                            <input type="file" id="image-upload" accept="image/*" hidden>
+                        </div>
+
+                        <div id="cropper-container" class="hidden">
+                            <div class="canvas-wrapper">
+                                <canvas id="crop-canvas"></canvas>
+                                <div class="crop-overlay-guide"></div>
+                            </div>
+                            <p class="instruction">Pinch or Scroll to Zoom • Drag to Move</p>
+                            <div class="crop-actions">
+                                <button id="crop-cancel-btn" class="cta-button white-btn-small">Cancel</button>
+                                <button id="crop-confirm-btn" class="cta-button white-btn">Confirm Crop</button>
+                            </div>
+                        </div>
+
+                        <div id="processing-view" class="hidden">
+                            <div class="string-art-container">
+                                <div class="generation-pair"
+                                    style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; width: 100%;">
+                                    <div class="canvas-wrapper">
+                                        <img id="source-image-display" src="" alt="Source"
+                                            style="width: 100%; height: auto; display: block;">
+                                    </div>
+                                    <div class="canvas-wrapper">
+                                        <canvas id="art-canvas" width="500" height="500"
+                                            class="string-art-canvas"></canvas>
+                                    </div>
+                                </div>
+
+                                <div class="string-art-progress">
+                                    <div id="progress-bar" class="string-art-progress-bar"></div>
+                                </div>
+
+                                <p id="status-text" class="instruction">Ready to generate.</p>
+
+                                <div class="string-art-controls">
+                                    <select id="line-count-select" class="white-btn-small"
+                                        style="background: #000; margin-right: 1rem;">
+                                        <option value="2200">2200 Lines</option>
+                                        <option value="2500" selected>2500 Lines</option>
+                                        <option value="3000">3000 Lines</option>
+                                        <option value="3500">3500 Lines</option>
+                                    </select>
+                                    <button id="btn-start-gen" class="cta-button white-btn-small">Start</button>
+                                    <button id="btn-reset-gen" class="cta-button white-btn-small">New Image</button>
+                                    <button id="btn-download-seq" class="cta-button white-btn-small" disabled>Download
+                                        Sequence</button>
+                                    <button id="btn-save-gallery" class="cta-button white-btn-small" disabled>Add to
+                                        Gallery</button>
+                                    <button id="btn-view-gallery-internal" class="cta-button white-btn-small">View
+                                        Gallery</button>
+                                    <button id="btn-go-reader" class="cta-button white-btn-small">Go to Reader</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="gallery-container" class="hidden">
+                            <h3 style="font-family: var(--font-heading); margin-bottom: 2rem;">Your Gallery</h3>
+                            <div id="gallery-grid"
+                                style="display: flex; flex-direction: column; gap: 2rem; max-width: 800px; margin: 0 auto;">
+                                <!-- Gallery items will go here -->
+                            </div>
+                        </div>
+
+
+                    </div>
+
+                    <!-- READER VIEW -->
+                    <div id="reader-view" class="hidden">
+                        <div class="workspace-content" style="max-width: 600px; margin: 0 auto; text-align: center;">
+                            <!-- Reader Setup Card -->
+                            <div id="reader-setup-card" class="interface-card hidden">
+                                <h2>Sequence Reader</h2>
+                                <p class="workspace-sub">Visualize and follow your string art sequence.</p>
+
+                                <!-- Option: Upload -->
+                                <div class="upload-area" id="reader-upload-trigger"
+                                    style="padding: 2rem; margin-bottom: 2rem;">
+                                    <div class="upload-icon" style="font-size: 2rem;">📄</div>
+                                    <p>Upload .txt Sequence</p>
+                                    <input type="file" id="reader-file-upload" accept=".txt" hidden>
+                                </div>
+
+                                <!-- Language Selection -->
+                                <div id="reader-language-select" class="hidden" style="margin-bottom: 2rem;">
+                                    <h4 style="margin-bottom: 1.5rem; color: #fff; font-family: var(--font-heading);">
+                                        Select
+                                        Language</h4>
+                                    <!-- Language Selection -->
+                                    <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                                        <button class="cta-button white-btn-small lang-btn" data-lang="en-US"
+                                            style="min-width: 100px;">English</button>
+                                        <button class="cta-button white-btn-small lang-btn" data-lang="te-IN"
+                                            style="min-width: 100px; opacity: 0.5; cursor: not-allowed;"
+                                            title="Coming Soon">Telugu</button>
+                                        <button class="cta-button white-btn-small lang-btn" data-lang="hi-IN"
+                                            style="min-width: 100px; opacity: 0.5; cursor: not-allowed;"
+                                            title="Coming Soon">Hindi</button>
+                                        <button class="cta-button white-btn-small lang-btn" data-lang="ta-IN"
+                                            style="min-width: 100px; opacity: 0.5; cursor: not-allowed;"
+                                            title="Coming Soon">Tamil</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Reader Interface -->
+                            <div id="reader-interface" class="hidden reader-card">
+                                <h2 class="reader-title">Sequence Reader</h2>
+
+                                <div class="reader-canvas-container">
+                                    <canvas id="reader-canvas" width="350" height="350"></canvas>
+                                </div>
+
+                                <div class="reader-info-block">
+                                    <span class="reader-pin-big" id="reader-pin-display">--</span>
+                                    <div class="reader-label-small">Current Pin</div>
+                                </div>
+
+                                <div class="reader-controls-row">
+                                    <button id="reader-prev" class="cta-button white-btn-small">Prev</button>
+                                    <button id="reader-play" class="cta-button white-btn-small">Play</button>
+                                    <button id="reader-next" class="cta-button white-btn-small">Next</button>
+                                </div>
+
+                                <div class="reader-slider-row">
+                                    <span style="font-size: 0.8rem; color: #888;">Speed:</span>
+                                    <input type="range" id="reader-speed" min="0.35" max="3" step="0.05" value="0.65"
+                                        style="accent-color: #fff;">
+                                    <span id="reader-speed-val" style="font-size: 0.8rem; color: #888;">0.65x</span>
+                                </div>
+
+                                <div class="reader-slider-row" style="margin-bottom: 1rem;">
+                                    <input type="number" id="reader-jump-input" placeholder="Step"
+                                        style="background: #111; border: 1px solid #333; color: white; padding: 5px; border-radius: 4px; width: 60px; text-align: center;">
+                                    <button id="reader-jump-btn" class="cta-button white-btn-small"
+                                        style="padding: 5px 10px; font-size: 0.8rem;">Go</button>
+                                </div>
+
+                                <div style="margin-top: 1rem;">
+                                    <span id="reader-step-status" style="color: #666; font-size: 0.8rem;">Step 0 /
+                                        0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about-section" class="hidden">
+        <div class="about-content">
+            <h1>About Us</h1>
+            <p>We are dedicted to bringing the art of string to everyone.</p>
+            <p>Our tools help you visualise, create and share beautiful geometric patterns.</p>
+            <div style="margin-top: 2rem;">
+                <button onclick="location.reload()" class="cta-button white-btn">Back to Home</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact-section" class="hidden">
+        <div class="about-content">
+            <h1>Contact Us</h1>
+            <p>We’re always excited to connect with fellow art enthusiasts! Whether you’re interested in becoming a
+                dealer, placing a bulk order for events, or simply have a question about our kits, we’d love to hear
+                from you. Drop us a line and let’s create something beautiful together.</p>
+            <p style="font-weight: 500;">Mail us at: <a href="mailto:contactus@lovablestrings.fun"
+                    style="color: #fff; text-decoration: underline;">contactus@lovablestrings.fun</a></p>
+            <div style="margin-top: 2rem;">
+                <button onclick="location.reload()" class="cta-button white-btn">Back to Home</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- External Library -->
+    <script src="string-art-generator.js"></script>
+
+    <!-- Shop Section -->
+    <section id="shop">
+        <div class="container">
+            <h2 class="section-title">Our Kits</h2>
+            <div class="product-grid">
+                <!-- Product 1: Square Kit -->
+                <div class="product-card">
+                    <div class="product-image">
+                        <img src="square_thread_art_kit.png" alt="Square Thread Art Kit">
+                    </div>
+                    <div class="thread-overlay"></div>
+                    <div class="product-info">
+                        <h3>Square Thread Art Kit</h3>
+                        <p class="description">Precision-cut square canvas with numbered nails and premium threads.</p>
+                        <ul class="highlights">
+                            <li>DIY Friendly</li>
+                            <li>Beginner to Advanced</li>
+                            <li>Frame-ready Output</li>
+                        </ul>
+                        <div class="price">$45.00</div>
+                        <button class="buy-button">View Kit</button>
+                    </div>
+                </div>
+
+                <!-- Product 2: Circle Kit -->
+                <div class="product-card">
+                    <div class="product-image">
+                        <img src="circle_thread_art_kit.png" alt="Circle Thread Art Kit">
+                    </div>
+                    <div class="thread-overlay"></div>
+                    <div class="product-info">
+                        <h3>Circle Thread Art Kit</h3>
+                        <p class="description">Perfect symmetry, flowing lines, meditative experience.</p>
+                        <ul class="highlights">
+                            <li>DIY Friendly</li>
+                            <li>Beginner to Advanced</li>
+                            <li>Frame-ready Output</li>
+                        </ul>
+                        <div class="price">$45.00</div>
+                        <button class="buy-button">View Kit</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,49 @@
+/* Subtle Thread Background Animation for Gallery */
+
+@keyframes subtleThreadFlow {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+#gallery-container {
+    margin-top: 2rem;
+    width: 100%;
+    position: relative;
+    padding: 0;
+    /* Removed background/border/animation as parent handles it */
+}
+
+/* Ensure content sits above background */
+#gallery-container>* {
+    position: relative;
+    z-index: 1;
+}
+
+/* Remove old pseudo-elements if any specific to gallery container alone */
+#gallery-container::before {
+    display: none;
+}
+
+/* Apply animation to upload area as well */
+.upload-area {
+    position: relative;
+    overflow: hidden;
+    /* Animated Gradient Background */
+    background: linear-gradient(-45deg, #111, #1a1a1a, #0d0d0d, #161616);
+    background-size: 400% 400%;
+    animation: subtleThreadFlow 15s ease infinite;
+}
+
+.upload-area>* {
+    position: relative;
+    z-index: 1;
+}

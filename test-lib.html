@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>String Art Library Test</title>
+    <link rel="stylesheet" href="string-art.css">
+    <style>
+        body {
+            font-family: sans-serif;
+            background: #f0f9ff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>String Art Generator Lib</h1>
+        <p>Test of the standalone library file.</p>
+
+        <input type="file" id="upload" accept="image/*" style="margin: 1rem 0;">
+
+        <div class="string-art-container">
+            <canvas id="art-canvas" width="500" height="500" class="string-art-canvas"></canvas>
+            <div class="string-art-progress">
+                <div id="progress-bar" class="string-art-progress-bar"></div>
+            </div>
+            <div class="string-art-controls">
+                <button id="btn-start" class="string-art-btn" disabled>Start Generation</button>
+                <button id="btn-stop" class="string-art-btn">Stop</button>
+            </div>
+            <p id="status">Upload an image to start</p>
+        </div>
+    </div>
+
+    <!-- Usage Example: Using standard script instead of module for file:// compatibility -->
+    <script src="string-art-generator.js"></script>
+    <script>
+        const canvas = document.getElementById('art-canvas');
+        const ctx = canvas.getContext('2d');
+        const statusBar = document.getElementById('status');
+        const progressBar = document.getElementById('progress-bar');
+
+        // Initialize Generator
+        // Check if loaded
+        if (typeof StringArtGenerator === 'undefined') {
+            statusBar.innerText = 'Error: StringArtGenerator library not loaded properly.';
+            console.error('Library missing');
+        }
+
+        const generator = new StringArtGenerator(500, 500);
+        let isRunning = false;
+        let animationId;
+
+        // 1. Handle Image Upload
+        document.getElementById('upload').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                const img = new Image();
+                img.onload = () => {
+                    // Draw image to canvas to get pixel data
+                    ctx.clearRect(0, 0, 500, 500);
+
+                    // Simple center crop/fit logic for test
+                    // Draw white background locally
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(0, 0, 500, 500);
+
+                    // Draw image centered
+                    const scale = Math.min(500 / img.width, 500 / img.height);
+                    const w = img.width * scale;
+                    const h = img.height * scale;
+                    ctx.drawImage(img, (500 - w) / 2, (500 - h) / 2, w, h);
+
+                    // Load into generator
+                    generator.loadFromElement(canvas);
+
+                    // Clear canvas for drawing the string art
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(0, 0, 500, 500);
+
+                    document.getElementById('btn-start').disabled = false;
+                    statusBar.innerText = 'Image Loaded. Ready to generate.';
+                };
+                img.src = evt.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // 2. Start Generation
+        document.getElementById('btn-start').addEventListener('click', () => {
+            // Setup
+            const NAILS = 200;
+            const LINES = 2000;
+
+            generator.initPins(NAILS, 'circle'); // or 'square'
+
+            ctx.lineWidth = 0.5;
+            ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+
+            isRunning = true;
+            let linesDrawn = 0;
+
+            const loop = () => {
+                if (!isRunning || linesDrawn >= LINES) {
+                    statusBar.innerText = isRunning ? 'Finished!' : 'Stopped';
+                    return;
+                }
+
+                // Generate a batch of steps (e.g. 10 at a time for speed)
+                const steps = generator.generateSteps(10);
+
+                steps.forEach(step => {
+                    ctx.beginPath();
+                    ctx.moveTo(step.p1.x, step.p1.y);
+                    ctx.lineTo(step.p2.x, step.p2.y);
+                    ctx.stroke();
+                });
+
+                linesDrawn += steps.length;
+                progressBar.style.width = `${(linesDrawn / LINES) * 100}%`;
+                statusBar.innerText = `Lines: ${linesDrawn}`;
+
+                animationId = requestAnimationFrame(loop);
+            };
+
+            loop();
+        });
+
+        document.getElementById('btn-stop').addEventListener('click', () => {
+            isRunning = false;
+            cancelAnimationFrame(animationId);
+        });
+
+    </script>
+</body>
+
+</html>
