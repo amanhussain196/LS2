@@ -1,4 +1,20 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // --------------------------------------------------------
+    // SUPABASE CONFIGURATION
+    // --------------------------------------------------------
+    // TODO: Enter your Supabase Project URL and Anon Key here
+    const SUPABASE_URL = 'https://dmbmlhtatylfzochgopl.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRtYm1saHRhdHlsZnpvY2hnb3BsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MDA1MDEsImV4cCI6MjA4MzI3NjUwMX0.8CYeo7DAfaL21meh2SKQC9Gke2iTlcaMzNKl9Bco7ls';
+
+    let supabaseClient = null;
+    if (window.supabase) {
+        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    } else {
+        console.warn('Supabase client library not found.');
+    }
+
+    let isDownloadUnlocked = false; // State for download lock
+
     // 1. Navigation & UI Setup
     const buyBtn = document.getElementById('buy-now-btn');
     if (buyBtn) {
@@ -783,18 +799,143 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Download Sequence
         const btnDownloadSeq = document.getElementById('btn-download-seq');
+        const redeemModal = document.getElementById('redeem-modal');
+        const btnCancelRedeem = document.getElementById('btn-cancel-redeem');
+        const btnConfirmRedeem = document.getElementById('btn-confirm-redeem');
+        const redeemInput = document.getElementById('redeem-code-input');
+        const redeemError = document.getElementById('redeem-error');
+
+        // Update Button Styling for Lock State
+        if (btnDownloadSeq) {
+            btnDownloadSeq.classList.add('locked-btn'); // Add red/locked style
+            // Note: Add this class in CSS or handling styling in JS
+            btnDownloadSeq.style.backgroundColor = '#ff4444';
+            btnDownloadSeq.innerText = '🔒 Download Sequence';
+        }
+
         if (btnDownloadSeq) {
             btnDownloadSeq.addEventListener('click', () => {
                 if (!generatorEngine || !generatorEngine.sequence) return;
-                const seq = generatorEngine.sequence.map(n => n + 1);
-                const text = seq.join(', ');
-                const blob = new Blob([text], { type: 'text/plain' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `string_art_sequence_${Date.now()}.txt`;
-                a.click();
+
+                if (!isDownloadUnlocked) {
+                    // Show Redeem Modal
+                    if (redeemModal) {
+                        redeemModal.classList.remove('hidden');
+                        redeemInput.value = '';
+                        redeemError.style.display = 'none';
+                    }
+                    return;
+                }
+
+                // Proceed to Download
+                performDownload();
             });
+        }
+
+        // Modal Actions
+        if (btnCancelRedeem) {
+            btnCancelRedeem.addEventListener('click', () => {
+                if (redeemModal) redeemModal.classList.add('hidden');
+            });
+        }
+
+        if (btnConfirmRedeem) {
+            btnConfirmRedeem.addEventListener('click', async () => {
+                const code = redeemInput.value.trim();
+                if (code.length !== 10) {
+                    showRedeemError("Please enter a valid 10-digit code.");
+                    return;
+                }
+
+                if (!supabaseClient) {
+                    showRedeemError("Database connection not set up.");
+                    return;
+                }
+
+                btnConfirmRedeem.disabled = true;
+                btnConfirmRedeem.innerText = "Verifying...";
+
+                try {
+                    // 1. Check Code
+                    const { data, error } = await supabaseClient
+                        .from('redeem_codes')
+                        .select('*')
+                        .eq('code', code)
+                        .single();
+
+                    if (error || !data) {
+                        showRedeemError("Invalid code. Please check and try again.");
+                        resetRedeemBtn();
+                        return;
+                    }
+
+                    if (data.is_used) {
+                        showRedeemError("This code has already been used.");
+                        resetRedeemBtn();
+                        return;
+                    }
+
+                    // 2. Mark as Used
+                    const { error: updateError } = await supabaseClient
+                        .from('redeem_codes')
+                        .update({ is_used: true })
+                        .eq('id', data.id);
+
+                    if (updateError) {
+                        showRedeemError("Error updating code status. Try again.");
+                        resetRedeemBtn();
+                        return;
+                    }
+
+                    // 3. Success! Unlock and Download
+                    isDownloadUnlocked = true;
+                    if (redeemModal) redeemModal.classList.add('hidden');
+
+                    // Update Button Visuals
+                    btnDownloadSeq.style.backgroundColor = ''; // Revert to default or green
+                    btnDownloadSeq.classList.remove('locked-btn');
+                    btnDownloadSeq.innerText = 'Download Sequence';
+
+                    // Trigger Save to Gallery (Force Save)
+                    // We call the click handler, but we need to ensuring it knows it is a forced save
+                    // We can reuse the logic or just manually save here to ensure `unlocked: true` is set.
+                    // Let's modify save logic to handle this state.
+                    saveCurrentToGallery(true); // Pass true for isRedeemed
+
+                    // Trigger Download
+                    performDownload();
+
+                    alert("Code valid! Download unlocked and art saved to gallery.");
+
+                } catch (err) {
+                    console.error(err);
+                    showRedeemError("An unexpected error occurred.");
+                    resetRedeemBtn();
+                }
+            });
+        }
+
+        function showRedeemError(msg) {
+            if (redeemError) {
+                redeemError.innerText = msg;
+                redeemError.style.display = 'block';
+            }
+        }
+
+        function resetRedeemBtn() {
+            btnConfirmRedeem.disabled = false;
+            btnConfirmRedeem.innerText = "Redeem & Download";
+        }
+
+        function performDownload() {
+            const seq = generatorEngine.sequence.map(n => n + 1);
+            const text = seq.join(', ');
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `string_art_sequence_${Date.now()}.txt`;
+            a.click();
         }
 
         // Go to Reader
@@ -884,6 +1025,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 btnStart.disabled = false;
                 if (progressBar) progressBar.style.width = '0%';
                 if (btnSaveGallery) btnSaveGallery.disabled = true;
+
+                // Reset Lock State
+                isDownloadUnlocked = false;
+                if (btnDownloadSeq) {
+                    btnDownloadSeq.classList.add('locked-btn');
+                    btnDownloadSeq.style.backgroundColor = '#ff4444';
+                    btnDownloadSeq.innerText = '🔒 Download Sequence';
+                    btnDownloadSeq.disabled = true; // Ensure disabled until generation complete
+                }
             });
         }
 
@@ -933,7 +1083,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         `<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #555; background: #000; font-size: 0.9rem;">No Source</div>`;
 
                     div.innerHTML = `
-                        <div class="gallery-click-area" data-id="${item.id}" style="display: flex; gap: 10px; margin-bottom: 12px; cursor: pointer;">
+                        <div class="gallery-click-area" data-id="${item.id}" style="display: flex; gap: 10px; margin-bottom: 12px; cursor: pointer; position: relative;">
+                            ${item.unlocked ? '<div style="position: absolute; top: -10px; right: -10px; background: #00ff88; color: black; border-radius: 50%; width: 24px; height: 24px; display: flex; justify-content: center; align-items: center; font-size: 14px; font-weight: bold; border: 2px solid white; z-index: 10;">✓</div>' : ''}
                             <div style="flex: 1; aspect-ratio: 1; overflow: hidden; border-radius: 4px; background: #000; pointer-events: none;">
                                 ${sourceDisplay}
                             </div>
@@ -942,7 +1093,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             </div>
                         </div>
                         <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 5px;">
-                            <span style="font-size: 0.75rem; color: #666; font-family: 'Inter', sans-serif;">${new Date(item.id).toLocaleDateString()}</span>
+                            <span style="font-size: 0.75rem; color: #666; font-family: 'Inter', sans-serif;">${new Date(item.id).toLocaleDateString()} ${item.unlocked ? '<span style="color: #00ff88; margin-left: 5px;">(Unlocked)</span>' : ''}</span>
                             <button class="gallery-delete-btn" data-id="${item.id}" style="
                                 background: transparent; 
                                 border: none; 
@@ -962,36 +1113,50 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
 
+        // Refactored Gallery Save Logic to be reusable
+        function saveCurrentToGallery(isRedeemed = false) {
+            if (!artCanvas) return;
+
+            // Capture Source
+            let sourceData = '';
+            if (window.sourceCanvasCache) {
+                sourceData = window.sourceCanvasCache.toDataURL();
+            } else {
+                const sourceDisplay = document.getElementById('source-image-display');
+                if (sourceDisplay) sourceData = sourceDisplay.src;
+            }
+
+            const artData = artCanvas.toDataURL();
+            const saved = JSON.parse(localStorage.getItem('stringArtGallery') || '[]');
+
+            // Check if already exists (by approximate match of data or just assume new?)
+            // For simplicity, we assume new unless we track current ID.
+            // But if we just redeemed, we want to save THIS art.
+
+            // LIMIT CHECK: Only if NOT redeemed. Redeemed art bypasses limit.
+            if (!isRedeemed && saved.length >= 3) {
+                alert("Gallery is full (Max 3). Please delete an old item below to save this new one.");
+                galleryContainer.scrollIntoView({ behavior: 'smooth' });
+                return;
+            }
+
+            const newItem = {
+                id: Date.now(),
+                artData,
+                sourceData,
+                unlocked: isRedeemed || isDownloadUnlocked, // Save lock state
+                sequence: generatorEngine ? generatorEngine.sequence : null // Save sequence data
+            };
+
+            saved.push(newItem);
+            localStorage.setItem('stringArtGallery', JSON.stringify(saved));
+
+            renderGallery();
+            if (!isRedeemed) alert('Saved to Gallery!');
+        }
+
         if (btnSaveGallery) {
-            btnSaveGallery.addEventListener('click', () => {
-                if (!artCanvas) return;
-
-                // Capture Source
-                let sourceData = '';
-                if (window.sourceCanvasCache) {
-                    sourceData = window.sourceCanvasCache.toDataURL();
-                } else {
-                    const sourceDisplay = document.getElementById('source-image-display');
-                    if (sourceDisplay) sourceData = sourceDisplay.src;
-                }
-
-                const artData = artCanvas.toDataURL();
-                const saved = JSON.parse(localStorage.getItem('stringArtGallery') || '[]');
-
-                // Check limit (Max 3) - Warn instead of overwrite
-                if (saved.length >= 3) {
-                    alert("Gallery is full (Max 3). Please delete an old item below to save this new one.");
-                    // Scroll to gallery
-                    galleryContainer.scrollIntoView({ behavior: 'smooth' });
-                    return;
-                }
-
-                saved.push({ id: Date.now(), artData, sourceData });
-                localStorage.setItem('stringArtGallery', JSON.stringify(saved));
-
-                renderGallery();
-                alert('Saved to Gallery!');
-            });
+            btnSaveGallery.addEventListener('click', () => saveCurrentToGallery(isDownloadUnlocked));
         }
 
         if (galleryGrid) {
@@ -1013,6 +1178,32 @@ document.addEventListener('DOMContentLoaded', () => {
                     const item = saved.find(i => i.id === id);
 
                     if (item && generatorWorkspace) {
+                        // SET UNLOCKED STATE based on Saved Item
+                        isDownloadUnlocked = !!item.unlocked;
+
+                        // Update Button Visuals accordingly
+                        const btnDownloadSeq = document.getElementById('btn-download-seq');
+                        if (btnDownloadSeq) {
+                            if (isDownloadUnlocked) {
+                                btnDownloadSeq.style.backgroundColor = '';
+                                btnDownloadSeq.classList.remove('locked-btn');
+                                btnDownloadSeq.innerText = 'Download Sequence';
+                            } else {
+                                btnDownloadSeq.classList.add('locked-btn');
+                                btnDownloadSeq.style.backgroundColor = '#ff4444';
+                                btnDownloadSeq.innerText = '🔒 Download Sequence';
+                            }
+                            // Important: Enable button if sequence is present!
+                            btnDownloadSeq.disabled = !item.sequence;
+                        }
+
+                        const btnSaveGallery = document.getElementById('btn-save-gallery');
+                        if (btnSaveGallery) {
+                            // Disable saving again if just loaded, or enable if you want duplicates? 
+                            // Best to disable to avoid confusion unless regenerated.
+                            // But let's leave default behavior or enable.
+                            btnSaveGallery.disabled = false;
+                        }
                         // Switch Views
                         galleryContainer.classList.add('hidden');
                         processingView.classList.remove('hidden');
@@ -1057,6 +1248,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
                                     // Cache for reset
                                     window.sourceCanvasCache = tempCanvas;
+
+                                    // RESTORE SEQUENCE IF AVAILABLE
+                                    if (item.sequence) {
+                                        generatorEngine.sequence = item.sequence;
+                                        // Also need to set pins if not set? 
+                                        // The initPins is called on Start. 
+                                        // We might need to manually ensure pins are ready or just trust sequence data.
+                                        // Actually, to download, we just need `generatorEngine.sequence`.
+                                        // But we might need `generatorEngine.pins` if we were to re-draw. 
+                                        // For now, just setting sequence is enough to enable download.
+                                        const btnDownloadSeq = document.getElementById('btn-download-seq');
+                                        if (btnDownloadSeq) btnDownloadSeq.disabled = false;
+                                    }
                                 };
                                 sourceImg.src = item.sourceData;
                             }
@@ -1394,6 +1598,8 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('reader-pin-display').style.opacity = '0.5';
 
             // Cancel prev
+            // Ensure we don't trigger onend logic for the canceled utterance by invalidating current
+            speechUtterance = null;
             window.speechSynthesis.cancel();
 
             const stepNum = contextStepIndex + 1;
@@ -1401,9 +1607,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Offline / System TTS Only
             const utterance = new SpeechSynthesisUtterance(textToRead);
+            speechUtterance = utterance; // Track global current
+
             utterance.lang = 'en-US'; // Force English
-            const speed = parseFloat(document.getElementById('reader-speed').value) || 1.0;
-            utterance.rate = speed;
+            const speedVal = parseFloat(document.getElementById('reader-speed').value) || 100;
+            utterance.rate = speedVal / 100;
 
             utterance.onstart = () => {
                 if (!readerPlaying) {
@@ -1427,10 +1635,15 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             utterance.onend = () => {
+                // Prevent race condition: If this utterance is not the active one, ignore.
+                if (speechUtterance !== utterance) return;
                 scheduleNextStep();
             };
 
             utterance.onerror = (e) => {
+                // Prevent race condition
+                if (speechUtterance !== utterance) return;
+
                 console.error("System TTS Error", e);
                 // Even if error, try to move on?
                 scheduleNextStep();
@@ -1457,6 +1670,9 @@ document.addEventListener('DOMContentLoaded', () => {
         function stopReading() {
             readerPlaying = false;
             clearTimeout(readerTimeout);
+
+            // Cancel any ongoing speech immediately
+            window.speechSynthesis.cancel();
 
             const btnPlay = document.getElementById('reader-play');
             if (btnPlay) btnPlay.innerText = "Play";
@@ -1503,7 +1719,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const sliderSpeed = document.getElementById('reader-speed');
         if (sliderSpeed) {
             sliderSpeed.addEventListener('input', (e) => {
-                document.getElementById('reader-speed-val').innerText = e.target.value + 'x';
+                document.getElementById('reader-speed-val').innerText = e.target.value + '%';
                 if (readerPlaying) {
                     // Restart with new speed
                     stopReading();
